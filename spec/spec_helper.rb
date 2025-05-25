@@ -7,6 +7,7 @@ require 'webmock/rspec'
 
 # Load env helper before any specs run
 require_relative 'support/env_helper'
+require_relative 'support/slack_stub_helper'
 
 ENV['RACK_ENV'] = 'test'
 

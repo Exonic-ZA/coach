@@ -3,9 +3,16 @@ require 'spec_helper'
 describe Api::Endpoints::UsersEndpoint do
   include Api::Test::EndpointTest
 
-  context 'users' do
-    let(:user) { Fabricate(:user) }
+  let(:user) { Fabricate(:user) }
 
+  before do
+    stub_slack_oauth(user_id: user.user_id)
+
+    allow_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
+    allow_any_instance_of(Slack::Web::Client).to receive(:conversations_open).and_return('channel' => { 'id' => 'C1' })
+  end
+
+  context 'users' do
     it 'connects a user to their Strava account', vcr: { cassette_name: 'strava/retrieve_access' } do
       expect_any_instance_of(User).to receive(:dm!).with(
         text: "Your Strava account has been successfully connected.\nI won't post any private activities, DM me `set private on` to toggle that and `help` for other options."
