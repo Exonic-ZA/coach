@@ -44,11 +44,11 @@ module Api
           end
 
           response = conn.post('/api/oauth.v2.access', {
-            client_id: ENV.fetch('SLACK_CLIENT_ID'),
-            client_secret: ENV.fetch('SLACK_CLIENT_SECRET'),
-            code: params[:code],
-            redirect_uri: ENV.fetch('SLACK_REDIRECT_URI')
-          })
+                                 client_id: ENV.fetch('SLACK_CLIENT_ID'),
+                                 client_secret: ENV.fetch('SLACK_CLIENT_SECRET'),
+                                 code: params[:code],
+                                 redirect_uri: ENV.fetch('SLACK_REDIRECT_URI')
+                               })
 
           rc = JSON.parse(response.body)
 
@@ -74,6 +74,7 @@ module Api
               bot_user_id: bot_user_id
             )
             raise "Team #{team.name} is already registered." if team.active?
+
             team.activate!(access_token)
           else
             team = Team.create!(
