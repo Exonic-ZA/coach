@@ -1,6 +1,33 @@
 require 'spec_helper'
 
 describe Api::Endpoints::TeamsEndpoint do
+  let(:slack_oauth_response) do
+    {
+      ok: true,
+      access_token: 'token',
+      bot_user_id: 'bot_user_id',
+      team: {
+        id: 'team_id',
+        name: 'team_name'
+      },
+      authed_user: {
+        id: 'user_id',
+        access_token: 'user_token'
+      }
+    }.to_json
+  end
+
+  before do
+    stub_request(:post, 'https://slack.com/api/oauth.v2.access')
+      .with(body: hash_including(code: 'code'))
+      .to_return(status: 200, body: slack_oauth_response, headers: { 'Content-Type' => 'application/json' })
+
+    allow_any_instance_of(Slack::Web::Client).to receive(:conversations_open).and_return('channel' => { 'id' => 'C123' })
+    allow_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
+    allow_any_instance_of(Team).to receive(:ping!).and_return(ok: true)
+    allow(SlackRubyBotServer::Service.instance).to receive(:create!)
+  end
+
   include Api::Test::EndpointTest
 
   context 'teams' do
