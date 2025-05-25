@@ -34,45 +34,54 @@ module Api
           requires :code, type: String
         end
         post do
-          client = Slack::Web::Client.new
-
-          unless ENV.key?('SLACK_CLIENT_ID') && ENV.key?('SLACK_CLIENT_SECRET')
-            raise 'Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET.'
+          unless ENV.key?('SLACK_CLIENT_ID') && ENV.key?('SLACK_CLIENT_SECRET') && ENV.key?('SLACK_REDIRECT_URI')
+            raise 'Missing required Slack OAuth env vars.'
           end
 
-          rc = client.oauth_access(
-            client_id: ENV.fetch('SLACK_CLIENT_ID', nil),
-            client_secret: ENV.fetch('SLACK_CLIENT_SECRET', nil),
-            code: params[:code]
-          )
+          conn = Faraday.new(url: 'https://slack.com') do |f|
+            f.request :url_encoded
+            f.adapter Faraday.default_adapter
+          end
 
-          token = rc['bot']['bot_access_token']
-          bot_user_id = rc['bot']['bot_user_id']
-          user_id = rc['user_id']
+          response = conn.post('/api/oauth.v2.access', {
+            client_id: ENV['SLACK_CLIENT_ID'],
+            client_secret: ENV['SLACK_CLIENT_SECRET'],
+            code: params[:code],
+            redirect_uri: ENV['SLACK_REDIRECT_URI']
+          })
+
+          rc = JSON.parse(response.body)
+
+          if !rc['ok']
+            error! rc['error'], 400
+          end
+
+          # New format
           access_token = rc['access_token']
-          team = Team.where(token: token).first
-          team ||= Team.where(team_id: rc['team_id']).first
+          bot_user_id = rc.dig('bot_user_id') || rc.dig('bot', 'bot_user_id')
+          team_id = rc['team']['id']
+          team_name = rc['team']['name']
+          user_id = rc.dig('authed_user', 'id')
+
+          team = Team.where(team_id: team_id).first
 
           if team
             team.ping_if_active!
-
-            team.update_attributes!(
-              token: token,
+            team.update!(
+              token: access_token,
               activated_user_id: user_id,
-              activated_user_access_token: access_token,
+              activated_user_access_token: rc.dig('authed_user', 'access_token'),
               bot_user_id: bot_user_id
             )
-
             raise "Team #{team.name} is already registered." if team.active?
-
-            team.activate!(token)
+            team.activate!(access_token)
           else
             team = Team.create!(
-              token: token,
-              team_id: rc['team_id'],
-              name: rc['team_name'],
+              token: access_token,
+              team_id: team_id,
+              name: team_name,
               activated_user_id: user_id,
-              activated_user_access_token: access_token,
+              activated_user_access_token: rc.dig('authed_user', 'access_token'),
               bot_user_id: bot_user_id
             )
           end
