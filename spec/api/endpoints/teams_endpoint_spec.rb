@@ -63,8 +63,9 @@ describe Api::Endpoints::TeamsEndpoint do
       end
 
       it 'reactivates a deactivated team' do
-        expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
         expect(SlackRubyBotServer::Service.instance).to receive(:start!)
+        expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
+
         existing_team = Fabricate(:team, token: 'token', active: false)
 
         expect {
@@ -80,8 +81,9 @@ describe Api::Endpoints::TeamsEndpoint do
       end
 
       it 'reactivates a team deactivated on slack' do
-        expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
         expect(SlackRubyBotServer::Service.instance).to receive(:start!)
+        expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
+
         existing_team = Fabricate(:team, token: 'token')
 
         expect {
@@ -100,6 +102,7 @@ describe Api::Endpoints::TeamsEndpoint do
       it 'returns a useful error when team already exists' do
         expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
         expect_any_instance_of(Team).to receive(:ping_if_active!)
+
         existing_team = Fabricate(:team, token: 'token')
 
         expect {
@@ -111,8 +114,9 @@ describe Api::Endpoints::TeamsEndpoint do
       end
 
       it 'reactivates a deactivated team with a different code' do
-        expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
         expect(SlackRubyBotServer::Service.instance).to receive(:start!)
+        expect_any_instance_of(Slack::Web::Client).to receive(:chat_postMessage)
+
         existing_team = Fabricate(:team, api: true, token: 'old', team_id: 'team_id', active: false)
 
         expect {
@@ -128,7 +132,8 @@ describe Api::Endpoints::TeamsEndpoint do
       end
 
       context 'with mailchimp settings' do
-        let(:list) { double(Mailchimp::List, members: double(Mailchimp::List::Members)) }
+        let(:members) { double(Mailchimp::List::Members) }
+        let(:list) { double(Mailchimp::List, members: members) }
 
         before do
           SlackRubyBotServer::Mailchimp.configure do |config|
@@ -137,6 +142,8 @@ describe Api::Endpoints::TeamsEndpoint do
           end
 
           allow(SlackRubyBotServer::Service.instance).to receive(:start!)
+          allow(members).to receive(:where).and_return([])
+          allow(members).to receive(:create_or_update)
         end
 
         after do
@@ -159,8 +166,9 @@ describe Api::Endpoints::TeamsEndpoint do
           )
 
           allow_any_instance_of(Mailchimp::Client).to receive(:lists).with('list-id').and_return(list)
-          expect(list.members).to receive(:where).with(email_address: 'user@example.com').and_return([])
-          expect(list.members).to receive(:create_or_update).with(
+
+          expect(members).to receive(:where).with(email_address: 'user@example.com').and_return([])
+          expect(members).to receive(:create_or_update).with(
             email_address: 'user@example.com',
             merge_fields: {
               'FNAME' => 'First',
