@@ -1,5 +1,5 @@
 <% require 'uri' %>
-<% redirect_url = URI.encode_www_form_component("#{ENV['URL']}/slack/oauth/callback") %>
+<% redirect_url = URI.encode_www_form_component("#{ENV['URL']}") %>
 <html>
  <head>
   <title>Slava: Strava integration with Slack</title>
