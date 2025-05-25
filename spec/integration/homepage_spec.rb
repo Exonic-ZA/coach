@@ -21,9 +21,12 @@ describe 'Homepage', :js, type: :feature do
   end
 
   it 'includes a link to add to slack with the client id and correct scope' do
-    expected_redirect_uri = CGI.escape("#{ENV.fetch('URL')}/slack/oauth/callback")
-    expected_href = "https://slack.com/oauth/v2/authorize?scope=scope:read&client_id=client_id&redirect_uri=#{expected_redirect_uri}"
+    expected_scope = ENV.fetch('SLACK_OAUTH_SCOPE')
+    expected_client_id = ENV.fetch('SLACK_CLIENT_ID')
+    expected_redirect_uri = CGI.escape(ENV.fetch('URL'))
 
-    expect(page).to have_css("a[href='#{expected_href}']")
+    expected_href = "https://slack.com/oauth/v2/authorize?scope=#{expected_scope}&client_id=#{expected_client_id}&redirect_uri=#{expected_redirect_uri}"
+
+    expect(page).to have_link(href: expected_href)
   end
 end
