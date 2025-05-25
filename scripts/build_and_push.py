@@ -25,7 +25,6 @@ def get_version():
         print(f"❌ Failed to load version: {e}")
         sys.exit(1)
 
-
 def docker_login_ecr():
     print("🔐 Logging into ECR...")
     ecr = boto3.client("ecr", region_name=AWS_REGION)
@@ -35,6 +34,7 @@ def docker_login_ecr():
     decoded_token = base64.b64decode(auth_data["authorizationToken"]).decode("utf-8")
     username, password = decoded_token.split(":")
     run(["docker", "login", "--username", username, "--password", password, ecr_url])
+    return ecr_url
 
 def main():
     version = get_version()
@@ -42,20 +42,25 @@ def main():
     image_latest = f"{ecr_url}:latest"
     image_version = f"{ecr_url}:v{version}"
 
-    print(f"📦 Building Docker image (v{version})...")
-    run(["docker", "build", "-t", REPO_NAME, "."])
-
-    print("🏷 Tagging image...")
-    run(["docker", "tag", f"{REPO_NAME}:latest", image_latest])
-    run(["docker", "tag", f"{REPO_NAME}:latest", image_version])
-
     docker_login_ecr()
 
-    print("🚀 Pushing to ECR...")
-    run(["docker", "push", image_latest])
-    run(["docker", "push", image_version])
+    print(f"🛠 Creating Buildx builder...")
+    try:
+        run(["docker", "buildx", "create", "--use"])
+    except subprocess.CalledProcessError:
+        print("⚠️ Buildx builder already exists or failed to create (this is usually okay)")
 
-    print(f"✅ Done! Image tagged as: {image_latest} and {image_version}")
+    print(f"📦 Building multi-arch Docker image (v{version})...")
+    run([
+        "docker", "buildx", "build",
+        "--platform", "linux/amd64,linux/arm64",
+        "--tag", image_latest,
+        "--tag", image_version,
+        "--push",
+        "."
+    ])
+
+    print(f"✅ Done! Image pushed as:\n- {image_latest}\n- {image_version}")
 
 if __name__ == "__main__":
     main()
