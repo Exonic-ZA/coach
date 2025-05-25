@@ -34,4 +34,4 @@ jobs:
           aws-region: af-south-1
 
       - name: 🚀 Build & Push Docker image to ECR
-        run: python ../scripts/build_and_push.py
+        run: python scripts/build_and_push.py
