@@ -11,7 +11,7 @@ import os
 AWS_REGION = os.getenv("AWS_REGION", "af-south-1")
 ACCOUNT_ID = os.getenv("AWS_ACCOUNT_ID")
 REPO_NAME = os.getenv("ECR_REPO_NAME")
-VERSION_FILE = "../../version.json"
+VERSION_FILE = "version.json"
 
 def run(command: list, **kwargs):
     print(f"💻 Running: {' '.join(command)}")
