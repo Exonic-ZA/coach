@@ -44,21 +44,21 @@ module Api
           end
 
           response = conn.post('/api/oauth.v2.access', {
-            client_id: ENV['SLACK_CLIENT_ID'],
-            client_secret: ENV['SLACK_CLIENT_SECRET'],
+            client_id: ENV.fetch('SLACK_CLIENT_ID'),
+            client_secret: ENV.fetch('SLACK_CLIENT_SECRET'),
             code: params[:code],
-            redirect_uri: ENV['SLACK_REDIRECT_URI']
+            redirect_uri: ENV.fetch('SLACK_REDIRECT_URI')
           })
 
           rc = JSON.parse(response.body)
 
-          if !rc['ok']
+          unless rc['ok']
             error! rc['error'], 400
           end
 
           # New format
           access_token = rc['access_token']
-          bot_user_id = rc.dig('bot_user_id') || rc.dig('bot', 'bot_user_id')
+          bot_user_id = rc['bot_user_id'] || rc.dig('bot', 'bot_user_id')
           team_id = rc['team']['id']
           team_name = rc['team']['name']
           user_id = rc.dig('authed_user', 'id')

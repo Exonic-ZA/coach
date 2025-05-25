@@ -4,7 +4,7 @@ describe 'Teams', :js, type: :feature do
   before do
     ENV['SLACK_CLIENT_ID'] = 'client_id'
     ENV['SLACK_CLIENT_SECRET'] = 'client_secret'
-    ENV['SLACK_OAUTH_SCOPE'] = 'bot,commands,links:read,links:write'
+    ENV['SLACK_OAUTH_SCOPE'] = 'commands,chat:write,channels:read,groups:read,users:read,links:read,links:write'
     ENV['SLACK_REDIRECT_URI'] = 'https://coach.exonic.co.za/teams'
   end
 
@@ -17,7 +17,7 @@ describe 'Teams', :js, type: :feature do
 
   context 'oauth', vcr: { cassette_name: 'auth_test' } do
     it 'registers a team' do
-      # Stub the Faraday POST to Slack's v2 OAuth endpoint
+      # Simulate a successful Slack OAuth v2 token exchange
       slack_response = {
         ok: true,
         access_token: 'token',
@@ -32,7 +32,8 @@ describe 'Teams', :js, type: :feature do
         }
       }.to_json
 
-      stub_request(:post, "https://slack.com/api/oauth.v2.access")
+      stub_request(:post, 'https://slack.com/api/oauth.v2.access')
+        .with(body: hash_including(code: 'code'))
         .to_return(status: 200, body: slack_response, headers: { 'Content-Type' => 'application/json' })
 
       allow_any_instance_of(Team).to receive(:ping!).and_return(ok: true)
